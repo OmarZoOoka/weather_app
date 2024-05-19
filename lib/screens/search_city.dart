@@ -71,6 +71,7 @@ class _SearchCityState extends State<SearchCity> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.green,
         leading: IconButton(
           onPressed: () {
             Navigator.pushReplacement(
@@ -106,7 +107,7 @@ class _SearchCityState extends State<SearchCity> {
                   labelText: "Search",
                   border: const OutlineInputBorder(),
                   enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue),
+                    borderSide: BorderSide(color: Colors.green),
                   ),
                 ),
               ),

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:weather_ui/screens/search_city.dart';
+import 'package:weather_ui/screens/steps_history.dart';
 
 class StepCounter extends StatefulWidget {
   const StepCounter({super.key, this.title});
@@ -24,8 +26,9 @@ class _StepCounterState extends State<StepCounter> {
   final _streamSubscriptions = <StreamSubscription<dynamic>>[];
 
   Duration sensorInterval = SensorInterval.normalInterval;
-  static const double stepThreshold = 1;
+  double previousMagnitude = 0;
   int stepCount = 0;
+  List<int> stepHistory = [];
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +53,16 @@ class _StepCounterState extends State<StepCounter> {
             color: Colors.white,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history),
+            onPressed: _showHistory,
+          ),
+          IconButton(
+            icon: Icon(Icons.save),
+            onPressed: _saveSteps,
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -133,9 +146,7 @@ class _StepCounterState extends State<StepCounter> {
                         child: Text(
                           'Accelerometer:',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              fontSize: 16, fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -186,7 +197,7 @@ class _StepCounterState extends State<StepCounter> {
   void initState() {
     super.initState();
     _streamSubscriptions.add(
-      userAccelerometerEventStream(samplingPeriod: sensorInterval).listen(
+      userAccelerometerEvents.listen(
         (UserAccelerometerEvent event) {
           final now = DateTime.now();
           setState(() {
@@ -220,14 +231,15 @@ class _StepCounterState extends State<StepCounter> {
 
   void detectStep(UserAccelerometerEvent event) {
     if (_userAccelerometerEvent != null) {
-      print(event.z);
       final double deltaX = (_userAccelerometerEvent!.x).abs();
       final double deltaY = (_userAccelerometerEvent!.y).abs();
       final double deltaZ = (_userAccelerometerEvent!.z).abs();
-      final double totalDelta = deltaX + deltaY + deltaZ;
 
-      print('Total Delta: $totalDelta');
-      if (deltaZ > stepThreshold) {
+      final double magnitude =
+          sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+      final double totalDelta = (magnitude - previousMagnitude).abs();
+      previousMagnitude = magnitude;
+      if (totalDelta > 6) {
         setState(() {
           stepCount++;
         });
@@ -235,5 +247,30 @@ class _StepCounterState extends State<StepCounter> {
     }
 
     _userAccelerometerEvent = event;
+  }
+
+  void _saveSteps() {
+    setState(() {
+      stepHistory.insert(0, stepCount);
+      stepCount = 0; 
+    });
+  }
+
+  void _showHistory() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StepHistoryScreen(
+          stepHistory: stepHistory,
+          onDelete: _deleteHistoryItem,
+        ),
+      ),
+    );
+  }
+
+  void _deleteHistoryItem(int index) {
+    setState(() {
+      stepHistory.removeAt(index);
+    });
   }
 }
